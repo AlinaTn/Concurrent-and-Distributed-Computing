@@ -1,0 +1,61 @@
+import java.net.*;
+import java.io. *;
+public class ServerProdus {
+	public static void
+	sendDataToClient(DataOutputStream dos, String s)
+	throws IOException
+	{
+		dos.writeUTF(s);  // send string to client
+		dos.flush(); // empty the string 
+		System.out.println("I sent to the client: " + s);
+		}
+	public static String
+	  receivesDataFromClient(DataInputStream dis)
+	  throws IOException
+	  {
+		String s = dis.readUTF(); // obtains data from the client
+		System.out.println("I received from the client" + s);
+		return s;
+	  }
+public static void main(String [] args)
+{
+	DataInputStream dis = null;
+	DataOutputStream dos = null;
+	Socket so = null;
+	ServerSocket server = null;
+	try
+	{  
+		server = new ServerSocket(2001);
+		so=server.accept();
+		System.out.println("The client connection was made");
+		dis = new DataInputStream
+				(new BufferedInputStream (so.getInputStream()));
+		dos = new DataOutputStream
+				(new BufferedOutputStream (so.getOutputStream()));		
+	}
+	catch (IOException e)
+	{
+		System.out.println("Connection error:" + e);
+	}
+	String sDouble = "";
+	double dOne = 0.0, dTwo = 0.0;
+	double sumaDouble =0.0;
+	try 
+	{
+		sDouble = receivesDataFromClient(dis);
+		Double dlTemp = Double.valueOf(sDouble);
+		dOne = dlTemp.doubleValue();
+		sDouble = receivesDataFromClient(dis);
+		dlTemp = Double.valueOf(sDouble);
+		dTwo = dlTemp.doubleValue();
+		sumaDouble = dOne + dTwo;
+		sendDataToClient(dos,Double.toString(sumaDouble));
+	}
+	catch (IOException e)
+	{ 
+		System.out.println("Sending Error + receive data: " + e);
+	}
+	System.out.println(dOne + " + " + dTwo + " = " + sumaDouble);
+} // the end of main()
+} // the end of ServerProdus class
+		
