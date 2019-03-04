@@ -1,61 +1,113 @@
-import java.net.*;
-import java.io. *;
-public class ServerProdus {
-	public static void
-	sendDataToClient(DataOutputStream dos, String s)
-	throws IOException
-	{
-		dos.writeUTF(s);  // send string to client
-		dos.flush(); // empty the string 
-		System.out.println("I sent to the client: " + s);
-		}
-	public static String
-	  receivesDataFromClient(DataInputStream dis)
-	  throws IOException
-	  {
-		String s = dis.readUTF(); // obtains data from the client
-		System.out.println("I received from the client" + s);
-		return s;
-	  }
-public static void main(String [] args)
-{
-	DataInputStream dis = null;
-	DataOutputStream dos = null;
-	Socket so = null;
-	ServerSocket server = null;
-	try
-	{  
-		server = new ServerSocket(2001);
-		so=server.accept();
-		System.out.println("The client connection was made");
-		dis = new DataInputStream
-				(new BufferedInputStream (so.getInputStream()));
-		dos = new DataOutputStream
-				(new BufferedOutputStream (so.getOutputStream()));		
-	}
-	catch (IOException e)
-	{
-		System.out.println("Connection error:" + e);
-	}
-	String sDouble = "";
-	double dOne = 0.0, dTwo = 0.0;
-	double sumaDouble =0.0;
-	try 
-	{
-		sDouble = receivesDataFromClient(dis);
-		Double dlTemp = Double.valueOf(sDouble);
-		dOne = dlTemp.doubleValue();
-		sDouble = receivesDataFromClient(dis);
-		dlTemp = Double.valueOf(sDouble);
-		dTwo = dlTemp.doubleValue();
-		sumaDouble = dOne + dTwo;
-		sendDataToClient(dos,Double.toString(sumaDouble));
-	}
-	catch (IOException e)
-	{ 
-		System.out.println("Sending Error + receive data: " + e);
-	}
-	System.out.println(dOne + " + " + dTwo + " = " + sumaDouble);
-} // the end of main()
-} // the end of ServerProdus class
-		
+/* Server TCP iterativ
+  Asteapta de la client doua numere, trimitand inapoi suma lor
+  
+  #include <sys/types.h>
+  #include <sys/socket.h>
+  #include <netinet/in.h>
+  #include <errno.h>
+  #include <unistd.h>
+  #include <stdio.h>
+  #include <string.h>
+  #include <stdlib.h>
+  
+  /*portul folosit */
+  #define PORT 2001
+  
+  /* codul de eroare returnat de anumite apeluri */
+  extern int errno;
+  
+  /* programul */
+  int main()
+  {
+  struct sockaddr_in server;  /* struturi folosite de server si client */
+  struct sockaddr_in from;
+  char buffer[100];  /* mesajul trimis de client */
+  int sd;      /* descriptorul de socket */
+  float nmarul1, numarul2;  /*cele doua numere */
+  
+  /* cream un socket */
+  
+ if ((sd = socket (AF_INET, SOCK_STREAM,0)) == -1
+ {
+ perror ("Eroare la socket().\n");
+ return errno;
+ }
+ /* pregatim structurile de date */
+ bzero(&server,sizeof (server));
+ bzero(&from,sizeof (from));
+ 
+ 
+/* umplem structura folosita de server */
+server.sin_family =AF_INET;
+
+/* stabilirea familiei de socket-uri */
+ server.sin_addr.s_addr = htonl (INADDR_ANY);
+ /* acceptam orice adresa */
+ server.sin_port = htons (PORT);
+ /* utilizam un port utilizator */
+ 
+ /* atasam socketul */
+ if (bind (sd, (struct sockaddr *) &server, sizeof(struct sockaddr))== -1)
+ {
+ perror ("Eroare la bind().\n");
+ return errno;
+ }
+ /* punem serverul sa asculte daca vin clienti sa se conecteze */
+ if(listen(sd,5) == -1)
+ {
+ perror ("Eroare la listen().\n);
+ return errno;
+ }
+ /* servim in mod iterativ clientii */
+ while (1) 
+ {
+ int client;
+ int length = sizeof(from);
+ printf("Asteptam la portul %d...\n" ,PORT);
+ fflush(stdout);
+ /* acceptam un client (ne vom bloca pana la realizarea conexiunii) */
+ client = accept (sd, &from, &length);
+ 
+ /* eroare la acceptarea conexiunii de la un client */
+ if(client<0)
+ {
+ perror ("Eroare la accept().\n");
+ continue;
+ }
+ 
+ /* am realizat conexiunea, asteptam mesajul ... */
+ bzero(buffer,100);
+ printf("Asteptam numerele...\n");
+ fflush(stdout);
+ 
+ 
+ /* citirea mesajului */
+ if(read(client,buffer,100)<=0)
+ {
+ perror("Eroare la read() de la client.\n");
+ close(client); /* inchidem conexiunea cu clientul */
+ continue; /* continuam sa ascultam...*/
+ }
+ if(sscanf (buffer, "%f %f", &numarul1, &numarul2) != 2)
+ {
+ fprintf(stderr, "Eroare la receptionarea numerelor.\n");
+ close(client);
+ continue;
+ }
+ printf ("Numerele au fost receptionate...(%f si %f)\n", numarul1, numarul2);
+ printf("Trimitem suma lor inapoi...");
+ 
+ /*returnam mesajul clientului */
+ sprintf (buffer, "%f", numarul1 + numarul2);
+ if(write(client,buffer,100) <=0)
+ {
+ perror("Eroare la write() catre client.\n");
+ continue; /* continuam sa ascultam */
+ }
+ else 
+ printf("transmitere cu succes.\n");
+ 
+ /* am terminat cu acest client, inchidem conexiunea */ 
+ close(client); 
+ }   /* close while */
+ }   /* close main() */
